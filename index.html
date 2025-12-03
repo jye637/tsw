@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { Trophy, RefreshCw, X } from 'lucide-react';
+
+export default function App() {
+  const [playerScore, setPlayerScore] = useState(0);
+  const [computerScore, setComputerScore] = useState(0);
+  const [userChoice, setUserChoice] = useState(null);
+  const [computerChoice, setComputerChoice] = useState(null);
+  const [result, setResult] = useState(null);
+  const [gameHistory, setGameHistory] = useState([]);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const choices = [
+    { id: 'rock', name: '石頭', emoji: '✊', beats: 'scissors' },
+    { id: 'paper', name: '布', emoji: '🖐️', beats: 'rock' },
+    { id: 'scissors', name: '剪刀', emoji: '✌️', beats: 'paper' },
+  ];
+
+  const handleChoice = (choice) => {
+    setIsAnimating(true);
+    setUserChoice(choice);
+    setComputerChoice(null);
+    setResult(null);
+
+    // 模擬電腦思考時間
+    setTimeout(() => {
+      const randomChoice = choices[Math.floor(Math.random() * choices.length)];
+      setComputerChoice(randomChoice);
+      determineWinner(choice, randomChoice);
+      setIsAnimating(false);
+    }, 600);
+  };
+
+  const determineWinner = (user, computer) => {
+    let outcome;
+    if (user.id === computer.id) {
+      outcome = 'draw';
+    } else if (user.beats === computer.id) {
+      outcome = 'win';
+      setPlayerScore((prev) => prev + 1);
+    } else {
+      outcome = 'lose';
+      setComputerScore((prev) => prev + 1);
+    }
+    
+    setResult(outcome);
+    setGameHistory((prev) => [
+      { winner: outcome, userIcon: user.emoji, compIcon: computer.emoji, id: Date.now() }, 
+      ...prev
+    ].slice(0, 5)); // 只保留最近5場記錄
+  };
+
+  const resetGame = () => {
+    setPlayerScore(0);
+    setComputerScore(0);
+    setUserChoice(null);
+    setComputerChoice(null);
+    setResult(null);
+    setGameHistory([]);
+  };
+
+  const playAgain = () => {
+    setUserChoice(null);
+    setComputerChoice(null);
+    setResult(null);
+  };
+
+  const getResultText = () => {
+    switch (result) {
+      case 'win': return { text: '你贏了！🎉', color: 'text-green-600' };
+      case 'lose': return { text: '電腦贏了 🤖', color: 'text-red-500' };
+      case 'draw': return { text: '平手 🤝', color: 'text-gray-500' };
+      default: return { text: '', color: '' };
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center py-10 px-4 font-sans select-none">
+      
+      {/* 標題與重置區 */}
+      <div className="w-full max-w-2xl flex justify-between items-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-indigo-900 drop-shadow-sm">
+          剪刀石頭布 
+        </h1>
+        <button 
+          onClick={resetGame}
+          className="flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-full shadow hover:bg-indigo-50 transition-colors text-sm font-medium"
+        >
+          <RefreshCw size={16} /> 重置分數
+        </button>
+      </div>
+
+      {/* 計分板 */}
+      <div className="flex justify-center gap-4 md:gap-12 w-full max-w-2xl mb-10">
+        <div className="bg-white rounded-2xl p-6 shadow-lg w-1/2 flex flex-col items-center border-b-4 border-indigo-500">
+          <span className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-2">玩家 (你)</span>
+          <span className="text-5xl font-black text-indigo-600">{playerScore}</span>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-lg w-1/2 flex flex-col items-center border-b-4 border-red-500">
+          <span className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-2">電腦</span>
+          <span className="text-5xl font-black text-red-500">{computerScore}</span>
+        </div>
+      </div>
+
+      {/* 遊戲主區域 */}
+      <div className="w-full max-w-2xl bg-white/60 backdrop-blur-sm rounded-3xl p-6 md:p-10 shadow-xl min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden">
+        
+        {!userChoice ? (
+          // 選擇階段
+          <div className="text-center w-full animate-fade-in">
+            <h2 className="text-2xl font-bold text-gray-700 mb-8">請出拳！</h2>
+            <div className="flex flex-wrap justify-center gap-6 md:gap-10">
+              {choices.map((choice) => (
+                <button
+                  key={choice.id}
+                  onClick={() => handleChoice(choice)}
+                  className="group relative flex flex-col items-center justify-center w-24 h-24 md:w-32 md:h-32 bg-white rounded-full shadow-md hover:shadow-xl hover:-translate-y-2 border-4 border-transparent hover:border-indigo-400 transition-all duration-300"
+                >
+                  <span className="text-4xl md:text-6xl group-hover:scale-110 transition-transform duration-300">{choice.emoji}</span>
+                  <span className="absolute -bottom-8 opacity-0 group-hover:opacity-100 transition-opacity text-indigo-600 font-bold">{choice.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          // 對決結果階段
+          <div className="w-full flex flex-col items-center animate-fade-in-up">
+            <div className="flex justify-between items-center w-full max-w-md mb-8">
+              {/* 玩家選擇 */}
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-gray-500 font-bold mb-2">你出了</span>
+                <div className={`w-28 h-28 md:w-36 md:h-36 bg-white rounded-full flex items-center justify-center shadow-lg border-4 ${result === 'win' ? 'border-green-400 shadow-green-200' : 'border-gray-100'}`}>
+                  <span className="text-5xl md:text-7xl animate-bounce-short">{userChoice.emoji}</span>
+                </div>
+              </div>
+
+              {/* VS 或 結果圖示 */}
+              <div className="text-2xl font-black text-gray-300 mx-2">VS</div>
+
+              {/* 電腦選擇 */}
+              <div className="flex flex-col items-center">
+                <span className="text-sm text-gray-500 font-bold mb-2">電腦出了</span>
+                <div className={`w-28 h-28 md:w-36 md:h-36 bg-white rounded-full flex items-center justify-center shadow-lg border-4 ${result === 'lose' ? 'border-red-400 shadow-red-200' : 'border-gray-100'}`}>
+                  {isAnimating ? (
+                     <span className="text-4xl animate-spin">🤔</span>
+                  ) : (
+                    <span className="text-5xl md:text-7xl animate-pop-in">{computerChoice?.emoji}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 結果判定文字 */}
+            {!isAnimating && (
+              <div className="text-center animate-scale-in">
+                <h2 className={`text-4xl md:text-5xl font-black mb-6 ${getResultText().color}`}>
+                  {getResultText().text}
+                </h2>
+                <button
+                  onClick={playAgain}
+                  className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-bold rounded-full shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:scale-105 active:scale-95"
+                >
+                  再玩一次
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 歷史記錄 (選填功能) */}
+      {gameHistory.length > 0 && (
+        <div className="mt-8 w-full max-w-lg">
+          <h3 className="text-center text-gray-400 text-sm font-bold mb-3 uppercase tracking-widest">最近戰績</h3>
+          <div className="flex justify-center gap-2">
+            {gameHistory.map((game) => (
+              <div key={game.id} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 bg-white shadow-sm ${
+                game.winner === 'win' ? 'border-green-400 text-green-600' : 
+                game.winner === 'lose' ? 'border-red-400 text-red-500' : 
+                'border-gray-300 text-gray-400'
+              }`}>
+                {game.winner === 'win' ? 'W' : game.winner === 'lose' ? 'L' : 'D'}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CSS 動畫樣式補充 */}
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pop-in {
+          0% { transform: scale(0); opacity: 0; }
+          80% { transform: scale(1.2); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        @keyframes scale-in {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fade-in { animation: fade-in 0.5s ease-out; }
+        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out; }
+        .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-scale-in { animation: scale-in 0.3s ease-out; }
+        .animate-bounce-short { animation: bounce 0.5s; }
+      `}</style>
+    </div>
+  );
+}
